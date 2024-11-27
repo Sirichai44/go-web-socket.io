@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      #broadcast-msg { background: #000; padding: 3px; position: fixed; bottom: 40px; width: 100%; }
+      #send-msg { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+
+      #broadcast { list-style-type: none; margin: 0 0 20px 0; padding: 0; }
+      #broadcast li { padding: 20px 10px; font-size: 20px; font-weight: bold; }
+    </style>
+  </head>
+
+  <body>
+    <div id="broadcast"></div>
+    <ul id="messages"></ul>
+    <form action="" id="broadcast-msg">
+      <input id="bm" autocomplete="off" /><button>Send Broadcast</button>
+    </form>
+
+    <form action="" id="send-msg">
+      <input id="m" autocomplete="off" /><button>Send Message</button>
+    </form>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script>
+      var socket = io();
+      var s2 = io("/chat"); // namespace
+
+      // connect to / namespace
+      socket.on('connect', () => {
+        console.log('connected to /chat');
+      });
+
+      // watch for messages
+      socket.on('reply', (msg) => {
+        var li = document.createElement('li');
+        var text = document.createTextNode(msg);
+        li.appendChild(text);
+        document.getElementById('messages').appendChild(li);
+
+      });
+
+      // send message
+      var form = document.getElementById('send-msg');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        var val = document.getElementById('m').value;
+        s2.emit('msg', document.getElementById('m').value, (data) => {
+          var li = document.createElement('li');
+          var text = document.createTextNode('ACK CALLBACK: ' + data);
+          li.appendChild(text);
+          document.getElementById('messages').appendChild(li);
+        });
+
+        socket.emit('notice', document.getElementById('m').value);
+
+        val.value = '';
+        return false;
+      });
+
+      // send broadcast message
+      var formBroad = document.getElementById('broadcast-msg');
+      formBroad.addEventListener('submit', (e) => {
+        e.preventDefault();
+        var valBroad = document.getElementById('bm').value;
+        socket.emit('broadcast-msg', document.getElementById('bm').value);
+        
+        valBroad.value = '';
+        return false;
+      });
+
+      // watch for broadcast events
+      socket.on("broadcast_event", function(msg) {
+        console.log('Broadcast message received:', msg);
+        document.getElementById('broadcast').innerHTML = '<li>Broadcast: ' + msg + '</li>'
+      });
+    </script>
+  </body>
+</html>
